@@ -44,8 +44,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Vector;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -64,6 +67,7 @@ import com.rabbitmq.client.Command;
 
 import pt.lsts.neptus.comm.manager.imc.ImcSystem;
 import pt.lsts.neptus.comm.manager.imc.ImcSystemsHolder;
+import pt.lsts.neptus.console.ConsoleEvents;
 import pt.lsts.neptus.console.ConsoleLayout;
 import pt.lsts.neptus.console.ConsolePanel;
 import pt.lsts.neptus.i18n.I18n;
@@ -71,20 +75,27 @@ import pt.lsts.neptus.plugins.PluginDescription;
 import pt.lsts.neptus.plugins.PluginDescription.CATEGORY;
 import pt.lsts.neptus.plugins.Popup;
 import pt.lsts.neptus.plugins.Popup.POSITION;
+import pt.lsts.neptus.plugins.acoustic.MantaOperations;
+import pt.lsts.neptus.plugins.gauges.GaugeDisplay;
 import pt.lsts.neptus.renderer2d.ILayerPainter;
 import pt.lsts.neptus.renderer2d.LayerPriority;
 import pt.lsts.neptus.renderer2d.Renderer2DPainter;
 import pt.lsts.neptus.renderer2d.StateRenderer2D;
+import pt.lsts.neptus.systems.external.ExternalSystem;
+import pt.lsts.neptus.systems.external.ExternalSystemsHolder;
+import pt.lsts.neptus.types.coord.LocationType;
 import pt.lsts.neptus.types.vehicle.VehicleType.SystemTypeEnum;
+import pt.lsts.neptus.util.ConsoleParse;
 import pt.lsts.neptus.util.GuiUtils;
+import pt.lsts.neptus.util.ImageUtils;
 
 /**
  * @author jpereira
- *
+ * based on MantaOperation.java; LatLongSelector.java
  */
 @PluginDescription(name = "Pinger Locator", author = "jpereira", category=CATEGORY.UNSORTED /*,icon="pt/lsts/neptus/plugins/acoustic/manta.png"*/)
 @LayerPriority(priority = 40)
-@Popup(name="Pinger Locator", accelerator=KeyEvent.VK_F, width=450, height=250, pos=POSITION.TOP_LEFT/*, icon="pt/lsts/neptus/plugins/acoustic/manta.png"*/)  
+@Popup(name="Pinger Locator", accelerator=KeyEvent.VK_F, width=480, height=250, pos=POSITION.TOP_LEFT/*, icon="pt/lsts/neptus/plugins/acoustic/manta.png"*/)  
 public class PingerLocator extends ConsolePanel implements Renderer2DPainter {
 
     private static final long serialVersionUID = 1L;
@@ -131,19 +142,23 @@ public class PingerLocator extends ConsolePanel implements Renderer2DPainter {
             public void actionPerformed(ActionEvent event) {
                 
                 Vector<String> options = new Vector<String>();
-                options.add(origin);
-                options.add(getConsole().getMainSystem());
                 
                 // fill the options
-                Vector<String> systemList = new Vector<String>();
+                if (!options.contains(origin))
+                    options.add(origin);
+                
+                if (!options.contains("Lat/Lon"))
+                options.add("Lat/Lon");
+                
+                if (!options.contains(getConsole().getMainSystem()));
+                    options.add(getConsole().getMainSystem());
+                
+                Vector<String> systemList = new Vector<String>();    
                 for (ImcSystem system : ImcSystemsHolder.lookupAllSystems()) {
-                    if (!options.contains(system.getName()))
+                    if ((!options.contains(system.getName())) && (!origin.equals(system.getName())))
                         systemList.add(system.getName());
                 }
                 
-                Vector<Object> systems = new Vector<>();
-                systems.add(I18n.text(origin));
-                systems.addAll(Arrays.asList(ImcSystemsHolder.lookupAllSystems()));
                 Collections.sort(systemList);
                 options.addAll(systemList);
                 
@@ -151,25 +166,42 @@ public class PingerLocator extends ConsolePanel implements Renderer2DPainter {
 
                 Object orig = JOptionPane.showInputDialog(getConsole(), I18n.text("Select System as origin"), 
                         I18n.text("Select a system to use as origin"),
-                        JOptionPane.QUESTION_MESSAGE, null, choices, choices[0]);
+                        JOptionPane.QUESTION_MESSAGE, null, choices, origin);
 
                 if (orig != null)
                     origin = ""+orig;
                 
                 ((JButton) event.getSource()).setText(I18n.textf("Origin: %origin", origin));
                 
-             //   ((JButton) event.getSource()).setText(I18n.textf("GW: %gateway", gateway));
-             //   lblState.setText(buildState());
-                // TODO Auto-generated method stub
-                
             }
         });
         ctrlPanel.add(button);
         
         button = new JButton(I18n.text("Add Line"));
-        ctrlPanel.add(button);
         button.setActionCommand("add");
         cmdButtons.put("add", button);
+        button.addActionListener(new ActionListener() {
+            LocationType location = null;
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(origin.equals("Lat/Lon"))
+                    System.out.println("selected Lat/Lon");
+                else{
+                    ImcSystem sys = ImcSystemsHolder.lookupSystemByName(origin);
+                    if (sys != null) 
+                        location = sys.getLocation();
+                    else {
+                        ExternalSystem extsys = ExternalSystemsHolder.lookupSystem(origin);
+                        if (extsys != null) 
+                            location = extsys.getLocation();
+                    }
+                }
+                             
+            }
+        });
+        
+        ctrlPanel.add(button);
+        
         
         button = new JButton(I18n.text("Delete Line"));
         ctrlPanel.add(button);
@@ -216,4 +248,5 @@ public class PingerLocator extends ConsolePanel implements Renderer2DPainter {
         
     }
 
+    
 }
