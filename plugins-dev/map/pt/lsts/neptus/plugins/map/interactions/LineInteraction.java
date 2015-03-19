@@ -82,8 +82,9 @@ public class LineInteraction extends InteractionAdapter implements Renderer2DPai
 
         element = new LineSegmentElement(pivot.getMapGroup(), pivot);
         element.setCenterLocation(lt);
-        element.length = 0;
-
+        element.setLength(0);
+        
+        
         pivot.addObject(element);
         MapChangeEvent changeEvent = new MapChangeEvent(MapChangeEvent.OBJECT_ADDED);
         changeEvent.setChangedObject(element);
