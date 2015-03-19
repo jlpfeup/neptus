@@ -91,5 +91,25 @@ public class LineSegmentElement extends SimpleMapElement {
     public boolean containsPoint(LocationType point, StateRenderer2D renderer) {
         return renderer.getZoom() * point.getDistanceInMeters(getCenterLocation()) <= 5;
     }
+
+    /**
+     * @return the length
+     */
+    public double getLength() {
+        return length;
+    }
+
+    /**
+     * @param set the length
+     */
+    public void setLength(double length) {
+        this.length = length;
+    }
     
+    /**
+     * @param set the color
+     */
+    public void setColor(Color color) {
+        this.color = color;
+    }
 }
